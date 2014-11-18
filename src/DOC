@@ -1,0 +1,26 @@
+Multi-Thread Operation
+Project #3, EECS343 Operating System
+Name: Yu Zhou(yzs572) / Chao Feng (cfi614)
+
+----Thread pool initialization: 
+we crate a thread pool before the listen call started. 20 worker threads are initialized to form the pool and
+waiting for executing. 
+
+-----Task queue fill in:
+When the request come in, it will be immediately added to the task queue. 
+If the task queue is not empty, the task at the head of the queue will be assigned to one of the threads. When the
+server has received requests from users, the request will be put in the tail of the task queue. Since the size of the
+queue is limited as `task_queue_size_limit`, I assign a dynamic array to save the tasks and use a cirular index to
+manage the head & tail positions.
+
+-----Mutual Execlusion:
+The `pthread_mutex_*` and `pthread_cond_*` function calls are used to protect the critical sections including the task queue and
+the seats, and deal with the race condition. The seats are locked when the information of the seats are requested.
+
+-----Standby List and semaphore:
+To implement the standby list, we have to track the status of the seats. If the there is no available seat when a
+booking request(except it is a view_seat or cancel task) comes, this request will be placed in the standby list. Also we have to monitor the 
+last task execute by a thread, if it is a cancel task, then the next thread should first go to standby list to find task
+before goint to task queue. 
+A binary semaphore is written using the `pthread_mutex_*` and `pthread_cond_*` function calls to control the standby
+list. 
