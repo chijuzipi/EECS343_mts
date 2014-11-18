@@ -59,9 +59,8 @@ int main(int argc,char *argv[])
     setsockopt( listenfd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag) );
 
     // initialize the threadpool
-    // Set the number of threads and size of the queue
-    threadpool = pool_create(10000, 20);
-
+    // Set the number of threads to be 20 and size of the queue to be 100
+    threadpool = pool_create(100, 20);
 
     // Load the seats;
     load_seats(num_seats); //TODO read from argv
@@ -89,8 +88,7 @@ int main(int argc,char *argv[])
         connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
         
         //add each task to the queue
-        pool_add_task(threadpool, (void *)&handle_connection,
-                      (void *)connfd);
+        pool_add_task(threadpool, (void *)&handle_connection,(void *)connfd);
     }
 }
 

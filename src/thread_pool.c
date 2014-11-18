@@ -48,11 +48,13 @@ pool_t *pool_create(int queue_size, int num_threads)
   if (num_threads == 0) {
     return NULL;
   }
+
   //allocate memory for the threads 
   thread_pool = (pool_t *)malloc(sizeof(pool_t));
   thread_pool->threads = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
   thread_pool->count = num_threads;
   thread_pool->size = queue_size;
+
   // Create pool threads 
   for (i = 0; i < num_threads; i++) {
     pthread_create(&thread_pool->threads[i], NULL,
@@ -109,6 +111,7 @@ int pool_destroy(pool_t *pool)
   if (pool == NULL)
     return -1;
   pool->closed = 1;
+
   // Wake the other threads 
   for (i = 0; i < pool->count; i++) {
     pthread_cond_signal(&pool->flag);
@@ -150,7 +153,7 @@ static void *thread_do_work(void *pool)
     //unlock
     pthread_mutex_unlock(&thread_pool->lock);
 
-    //execute the handler
+    //execute the connection handler
     (* task->function)(&task->argument);
   }
 
