@@ -2,7 +2,7 @@
 type=correctness
 threads=2
 requests=1
-sleeptime=1
+sleeptime=0.01
 
 %assuming seats are 1-20
 %These are all supposed to work

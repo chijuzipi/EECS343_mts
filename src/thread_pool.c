@@ -27,6 +27,7 @@ struct pool_t {
   pthread_cond_t flag;
   pthread_t *threads;
   pool_task_t *queue;
+  int job_count;
   int size;
   int closed;
   int first;
@@ -66,6 +67,7 @@ pool_t *pool_create(int queue_size, int num_threads)
   thread_pool->closed = 0;
   thread_pool->first = 0;
   thread_pool->last = 0;
+  thread_pool->job_count = 0;
 
   // Initialize the variable
   pthread_mutex_init(&thread_pool->lock, NULL);
@@ -91,6 +93,8 @@ int pool_add_task(pool_t *pool, void (*function)(void *), void *argument)
   pool->last = ((pool->last == pool->size) ? 0 : pool->last);
   task->function = function;
   task->argument = argument;
+  
+  pool->job_count++;
 
   //notify the wating thread
   pthread_cond_signal(&pool->flag);
@@ -99,6 +103,42 @@ int pool_add_task(pool_t *pool, void (*function)(void *), void *argument)
   pthread_mutex_unlock(&pool->lock);
         
   return 0;
+}
+
+/*
+ * Work loop for threads. Should be passed into the pthread_create() method.
+ */
+static void *thread_do_work(void *pool)
+{ 
+  pool_t *thread_pool = pool;
+  pool_task_t *task;
+
+  while(1) {
+    //get the lock
+    pthread_mutex_lock(&thread_pool->lock);
+
+    //wait the signal clear
+    while(thread_pool->job_count == 0)
+      pthread_cond_wait(&thread_pool->flag, &thread_pool->lock); 
+
+    thread_pool->job_count--;
+    //if the server is not available
+    if (thread_pool->closed == 1) {
+      break;
+    }
+    task = &thread_pool->queue[thread_pool->first];
+    thread_pool->first += 1;
+    thread_pool->first = ((thread_pool->first == thread_pool->size) ? 0 : thread_pool->first);
+
+    //unlock
+    pthread_mutex_unlock(&thread_pool->lock);
+
+    //execute the connection handler
+    (* task->function)(&task->argument);
+  }
+
+  pthread_exit(NULL);
+  return NULL;
 }
 
 /*
@@ -126,37 +166,3 @@ int pool_destroy(pool_t *pool)
   return 0;
 }
 
-/*
- * Work loop for threads. Should be passed into the pthread_create() method.
- *
- */
-static void *thread_do_work(void *pool)
-{ 
-  pool_t *thread_pool = pool;
-  pool_task_t *task;
-
-  while(1) {
-    //get the lock
-    pthread_mutex_lock(&thread_pool->lock);
-
-    //wait the signal clear
-    pthread_cond_wait(&thread_pool->flag, &thread_pool->lock); 
-
-    //if the server is not available
-    if (thread_pool->closed == 1) {
-      break;
-    }
-    task = &thread_pool->queue[thread_pool->first];
-    thread_pool->first += 1;
-    thread_pool->first = ((thread_pool->first == thread_pool->size) ? 0 : thread_pool->first);
-
-    //unlock
-    pthread_mutex_unlock(&thread_pool->lock);
-
-    //execute the connection handler
-    (* task->function)(&task->argument);
-  }
-
-  pthread_exit(NULL);
-  return NULL;
-}
