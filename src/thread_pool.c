@@ -23,6 +23,7 @@ typedef struct {
 } pool_task_t;
 
 struct pool_t {
+  sem_t semaphore;
   pthread_mutex_t lock;
   pthread_cond_t flag;
   pthread_t *threads;
@@ -70,7 +71,8 @@ pool_t *pool_create(int queue_size, int num_threads)
   thread_pool->job_count = 0;
 
   // Initialize the variable
-  pthread_mutex_init(&thread_pool->lock, NULL);
+  sem_init(&thread_pool->semaphore, 0, 0);
+  pthread_mutex_init($thread_pool->lock, NULL);
   pthread_cond_init(&thread_pool->flag, NULL);
 
   return thread_pool;
