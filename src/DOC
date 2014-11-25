@@ -3,8 +3,7 @@ Project #3, EECS343 Operating System
 Name: Yu Zhou(yzs572) / Chao Feng (cfi614)
 
 ----Thread pool initialization: 
-we crate a thread pool before the listen call started. 20 worker threads are initialized to form the pool and
-waiting for executing. 
+we crate a thread pool before the listen call started. 20 worker threads are initialized to form the pool and waiting for executing. 
 
 -----Task queue fill in:
 When the request come in, it will be immediately added to the task queue. 

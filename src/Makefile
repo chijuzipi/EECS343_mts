@@ -32,7 +32,7 @@ COMPRESS = gzip
 #CFLAGS = -g -Wall -D HAVE_CONFIG_H
 CFLAGS = -g -Wall -O2 -D HAVE_CONFIG_H
 
-DELIVERY = Makefile *.h *.c aquajet_full.png selectSeats.html reserveSeat.html
+DELIVERY = Makefile *.h *.c aquajet_full.png selectSeats.html reserveSeat.html DOC
 PROGS = http_server
 SRCS = http_server.c thread_pool.c util.c seats.c semaphore.c
 OBJS = ${SRCS:.c=.o}

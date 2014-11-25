@@ -162,7 +162,7 @@ int pool_destroy(pool_t *pool)
   for (i = 0; i < pool->count; i++) {
     sem_post(&pool->sem_lock);
     sem_post(&pool->sem_hasjob);
-    //pthread_cond_signal(&pool->flag);
+    pthread_cond_signal(&pool->flag);
   }
   for (i = 0; i < pool->count; i++) {
     pthread_join(pool->threads[i], NULL);

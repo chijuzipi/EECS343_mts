@@ -1,7 +1,7 @@
 [configuration]
 type=performance
 threads=50
-requests=100
+requests=10
 sleeptime=0.01
 
 [trace1]
