@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include<semaphore.h>
 
 #include "thread_pool.h"
 
@@ -23,7 +24,8 @@ typedef struct {
 } pool_task_t;
 
 struct pool_t {
-  sem_t semaphore;
+  sem_t sem_lock;
+  sem_t sem_hasjob;
   pthread_mutex_t lock;
   pthread_cond_t flag;
   pthread_t *threads;
@@ -71,8 +73,9 @@ pool_t *pool_create(int queue_size, int num_threads)
   thread_pool->job_count = 0;
 
   // Initialize the variable
-  sem_init(&thread_pool->semaphore, 0, 0);
-  pthread_mutex_init($thread_pool->lock, NULL);
+  sem_init(&thread_pool->sem_lock, 0, 1);
+  sem_init(&thread_pool->sem_hasjob, 0, 0);
+  pthread_mutex_init(&thread_pool->lock, NULL);
   pthread_cond_init(&thread_pool->flag, NULL);
 
   return thread_pool;
@@ -88,7 +91,7 @@ int pool_add_task(pool_t *pool, void (*function)(void *), void *argument)
   pool_task_t *task;
 
   //get the lock
-  pthread_mutex_lock(&pool->lock);
+  sem_wait(&pool->sem_lock);
 
   task = &pool->queue[pool->last];
   pool->last = pool->last + 1;
@@ -99,10 +102,11 @@ int pool_add_task(pool_t *pool, void (*function)(void *), void *argument)
   pool->job_count++;
 
   //notify the wating thread
-  pthread_cond_signal(&pool->flag);
+  //pthread_cond_signal(&pool->flag);
 
   //Unlock 
-  pthread_mutex_unlock(&pool->lock);
+  sem_post(&pool->sem_lock);
+  sem_post(&pool->sem_hasjob);
         
   return 0;
 }
@@ -116,12 +120,12 @@ static void *thread_do_work(void *pool)
   pool_task_t *task;
 
   while(1) {
-    //get the lock
-    pthread_mutex_lock(&thread_pool->lock);
-
     //wait the signal clear
     while(thread_pool->job_count == 0)
-      pthread_cond_wait(&thread_pool->flag, &thread_pool->lock); 
+      sem_wait(&thread_pool->sem_hasjob); 
+
+    //get the lock
+    sem_wait(&thread_pool->sem_lock);
 
     thread_pool->job_count--;
     //if the server is not available
@@ -133,7 +137,7 @@ static void *thread_do_work(void *pool)
     thread_pool->first = ((thread_pool->first == thread_pool->size) ? 0 : thread_pool->first);
 
     //unlock
-    pthread_mutex_unlock(&thread_pool->lock);
+    sem_post(&thread_pool->sem_lock);
 
     //execute the connection handler
     (* task->function)(&task->argument);
@@ -156,7 +160,9 @@ int pool_destroy(pool_t *pool)
 
   // Wake the other threads 
   for (i = 0; i < pool->count; i++) {
-    pthread_cond_signal(&pool->flag);
+    sem_post(&pool->sem_lock);
+    sem_post(&pool->sem_hasjob);
+    //pthread_cond_signal(&pool->flag);
   }
   for (i = 0; i < pool->count; i++) {
     pthread_join(pool->threads[i], NULL);
